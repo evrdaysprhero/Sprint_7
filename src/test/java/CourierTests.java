@@ -18,7 +18,7 @@ public class CourierTests {
         RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
     }
 
-    public Response postCourier(Courier courier) {
+    public static Response postCourier(Courier courier) {
         return given()
                 .header("Content-type", "application/json")
                 .body(courier)

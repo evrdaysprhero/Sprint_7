@@ -40,8 +40,6 @@ public class CourierParametrizedTests {
 
     @Before
     public void setUp() {
-        // повторяющуюся для разных ручек часть URL лучше записать в переменную в методе Before
-        // если в классе будет несколько тестов, указывать её придётся только один раз
         RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
     }
 
