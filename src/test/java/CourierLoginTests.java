@@ -1,27 +1,37 @@
+import io.qameta.allure.Step;
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import pojo.*;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import static io.restassured.RestAssured.given;
 
 public class CourierLoginTests {
-    private final String LOGIN = "sprhero100";
-    private final String PASSWORD = "12345";
+    private String login;
+    private String password;
     private Integer id;
 
     @Before
+    @Step("Подготовка данных и создание курьера")
     public void setUp() {
         RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
 
-        Courier courier = new Courier(LOGIN, PASSWORD, "Eugenia");
+        login = "sprhero" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        password = RandomStringUtils.randomNumeric(5);
+
+        Courier courier = new Courier(login, password, RandomStringUtils.randomAlphabetic(6));
 
         Response response = CourierTests.postCourier(courier);
 
-        CourierLogin courierLogin = new CourierLogin(LOGIN, PASSWORD);
+        CourierLogin courierLogin = new CourierLogin(login, password);
         id = postCourierLogin(courierLogin)
                 .body()
                 .as(CourierLoginResponse.class)
@@ -29,6 +39,7 @@ public class CourierLoginTests {
     }
 
     @After
+    @Step("Удаление курьера")
     public void clear() {
 
         given()
@@ -36,6 +47,7 @@ public class CourierLoginTests {
 
     }
 
+    @Step("Вызов /api/v1/courier/login")
     public static Response postCourierLogin(CourierLogin courier) {
         return given()
                 .header("Content-type", "application/json")
@@ -45,8 +57,9 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Успешный логин")
     public void courierLoginSuccess() {
-        CourierLogin courier = new CourierLogin(LOGIN, PASSWORD);
+        CourierLogin courier = new CourierLogin(login, password);
 
         Response response = postCourierLogin(courier);
 
@@ -61,8 +74,9 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Не указан логин")
     public void courierLoginEmptyNameFail() {
-        CourierLogin courier = new CourierLogin(null, PASSWORD);
+        CourierLogin courier = new CourierLogin(null, password);
 
         Response response = postCourierLogin(courier);
 
@@ -77,8 +91,9 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Не указан пароль")
     public void courierLoginEmptyPassFail() {
-        CourierLogin courier = new CourierLogin(LOGIN, null);
+        CourierLogin courier = new CourierLogin(login, null);
 
         Response response = postCourierLogin(courier);
 
@@ -93,9 +108,10 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Нет поля Логин")
     public void courierLoginNoNameFail() {
 
-        String json = "{\"password\": \"" + PASSWORD + "\"}";
+        String json = "{\"password\": \"" + password + "\"}";
 
         Response response = given()
                 .header("Content-type", "application/json")
@@ -113,9 +129,10 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Нет поля Пароль")
     public void courierLoginNoPassFail() {
 
-        String json = "{\"login\": \"" + LOGIN + "\"}";
+        String json = "{\"login\": \"" + login + "\"}";
 
         Response response = given()
                 .header("Content-type", "application/json")
@@ -133,8 +150,9 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Несуществующие Логин и Пароль")
     public void courierLoginWrongLoginFail() {
-        CourierLogin courier = new CourierLogin("sprhero0000", PASSWORD);
+        CourierLogin courier = new CourierLogin(login + "0000", password);
 
         Response response = postCourierLogin(courier);
 
@@ -149,8 +167,9 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Неправильный пароль")
     public void courierLoginWrongPassFail() {
-        CourierLogin courier = new CourierLogin(LOGIN, "0000");
+        CourierLogin courier = new CourierLogin(login, password + "0000");
 
         Response response = postCourierLogin(courier);
 
@@ -165,8 +184,9 @@ public class CourierLoginTests {
     }
 
     @Test
+    @DisplayName("Неправильные логин и пароль")
     public void courierLoginWrongDataFail() {
-        CourierLogin courier = new CourierLogin("sprhero00000", "0000");
+        CourierLogin courier = new CourierLogin(login + "00", password + "00");
 
         Response response = postCourierLogin(courier);
 

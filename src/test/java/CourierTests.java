@@ -1,23 +1,49 @@
+import io.qameta.allure.Step;
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import pojo.Courier;
-import pojo.CourierResponse;
-import pojo.CourierResponseFail;
+import pojo.*;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static io.restassured.RestAssured.*;
 
 public class CourierTests {
+    private String login;
+    private String password;
+    private String name;
 
     @Before
+    @Step("Подготовка данных")
     public void setUp() {
         // повторяющуюся для разных ручек часть URL лучше записать в переменную в методе Before
         // если в классе будет несколько тестов, указывать её придётся только один раз
         RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
+        login = "sprhero" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        password = RandomStringUtils.randomNumeric(6);
+        name = RandomStringUtils.randomAlphabetic(5);
     }
 
+    @After
+    @Step("Удаление созданного курьера")
+    public void clear() {
+        CourierLogin courierLogin = new CourierLogin(login, password);
+        Integer id = CourierLoginTests.postCourierLogin(courierLogin)
+                .body()
+                .as(CourierLoginResponse.class)
+                .getId();
+
+        given()
+                .delete("/api/v1/courier/{id}", id);
+    }
+
+    @Step("Вызов /api/v1/Courier")
     public static Response postCourier(Courier courier) {
         return given()
                 .header("Content-type", "application/json")
@@ -26,8 +52,9 @@ public class CourierTests {
     }
 
     @Test
+    @DisplayName("Запрос со всеми параметрами")
     public void createAllParamsSuccess() {
-        Courier courier = new Courier("sprhero12", "12345", "Eugenia");
+        Courier courier = new Courier(login, password, name);
 
         Response response = postCourier(courier);
 
@@ -42,9 +69,10 @@ public class CourierTests {
     }
 
     @Test
+    @DisplayName("Нет поля Имя")
     public void createNoNameSuccess() {
-        String json = "{\"login\": \"sprhero13\",\n" +
-                "\"password\": \"saske\"}";
+        String json = "{\"login\": \"" + login + "\",\n" +
+                "\"password\": \"" + password + "\"}";
 
         Response response = given()
                 .header("Content-type", "application/json")
@@ -61,8 +89,9 @@ public class CourierTests {
     }
 
     @Test
+    @DisplayName("Нельзя создать двух одинаковых курьеров")
     public void createTwoCouriersFail() {
-        Courier courier = new Courier("sprhero14", "12345", "Eugenia");
+        Courier courier = new Courier(login, password, name);
 
         //вызываем первый раз
         Response response = postCourier(courier);
@@ -81,9 +110,10 @@ public class CourierTests {
     }
 
     @Test
+    @DisplayName("Нельзя создать двух курьеров с одинаковым логином")
     public void createTwoLoginsFail() {
-        Courier courierOne = new Courier("sprhero15", "12345", "Eugenia");
-        Courier courierTwo = new Courier("sprhero15", "1234567", "Ivan");
+        Courier courierOne = new Courier(login, password, name);
+        Courier courierTwo = new Courier(login, "1234567", "Ivan");
 
         //вызываем первый раз
         Response response = postCourier(courierOne);
@@ -102,10 +132,11 @@ public class CourierTests {
     }
 
     @Test
+    @DisplayName("Нет поля Логин")
     public void createNoLoginFail() {
 
-        String json = "{\"password\": \"1234\",\n" +
-                "\"firstName\": \"saske\"}";
+        String json = "{\"password\": \"" + password + "\",\n" +
+                "\"firstName\": \"" + name + "\"}";
 
         Response response = given()
                         .header("Content-type", "application/json")
@@ -122,10 +153,11 @@ public class CourierTests {
     }
 
     @Test
+    @DisplayName("Нет поля Пароль")
     public void createNoPasswordFail() {
 
-        String json = "{\"login\": \"sprhero16\",\n" +
-                "\"firstName\": \"saske\"}";
+        String json = "{\"login\": \"" + login + "\",\n" +
+                "\"firstName\": \"" + name + "\"}";
 
         Response response = given()
                 .header("Content-type", "application/json")

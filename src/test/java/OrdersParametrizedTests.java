@@ -1,3 +1,4 @@
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.Assert;
@@ -58,6 +59,7 @@ public class OrdersParametrizedTests {
     }
 
     @Test
+    @DisplayName("Успешное создание заказа")
     public void createOrderSuccess() {
 
         List<String> colours = new ArrayList<>();
