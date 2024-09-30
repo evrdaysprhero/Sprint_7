@@ -1,3 +1,4 @@
+import io.qameta.allure.Epic;
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
@@ -14,10 +15,11 @@ import java.time.format.DateTimeFormatter;
 
 import static io.restassured.RestAssured.*;
 
-public class CourierTests {
+public class CourierTest {
     private String login;
     private String password;
     private String name;
+    private boolean isSuccess;
 
     @Before
     @Step("Подготовка данных")
@@ -33,14 +35,16 @@ public class CourierTests {
     @After
     @Step("Удаление созданного курьера")
     public void clear() {
-        CourierLogin courierLogin = new CourierLogin(login, password);
-        Integer id = CourierLoginTests.postCourierLogin(courierLogin)
-                .body()
-                .as(CourierLoginResponse.class)
-                .getId();
+        if(isSuccess) {
+            CourierLogin courierLogin = new CourierLogin(login, password);
+            Integer id = CourierLoginTest.postCourierLogin(courierLogin)
+                    .body()
+                    .as(CourierLoginResponse.class)
+                    .getId();
 
-        given()
-                .delete("/api/v1/courier/{id}", id);
+            given()
+                    .delete("/api/v1/courier/{id}", id);
+        }
     }
 
     @Step("Вызов /api/v1/Courier")
@@ -51,9 +55,25 @@ public class CourierTests {
                 .post("/api/v1/Courier");
     }
 
+    @Step("Проверка кода ответа")
+    public static void checkResponseCode(Response response, Integer expCode) {
+        response.then().assertThat()
+                .statusCode(expCode);
+    }
+
+    @Step("Проверка сообщения об ошибке")
+    public static void checkResponseMessage(Response response, String expMsg) {
+        CourierResponseFail courierResponse = response
+                .body()
+                .as(CourierResponseFail.class);
+        Assert.assertEquals(expMsg, courierResponse.getMessage());
+    }
+
     @Test
+    @Epic(value = "/api/v1/Courier")
     @DisplayName("Запрос со всеми параметрами")
     public void createAllParamsSuccess() {
+        isSuccess = true;
         Courier courier = new Courier(login, password, name);
 
         Response response = postCourier(courier);
@@ -62,15 +82,17 @@ public class CourierTests {
                 .body()
                 .as(CourierResponse.class);
 
-        response.then().assertThat()
-                .statusCode(201);
+        checkResponseCode(response, 201);
         Assert.assertTrue("Курьер не создан", courierResponse.getOk());
 
     }
 
     @Test
+    @Epic(value = "/api/v1/Courier")
     @DisplayName("Нет поля Имя")
     public void createNoNameSuccess() {
+        isSuccess = true;
+
         String json = "{\"login\": \"" + login + "\",\n" +
                 "\"password\": \"" + password + "\"}";
 
@@ -80,8 +102,7 @@ public class CourierTests {
                 .body(json)
                 .post("/api/v1/Courier");
 
-        response.then().assertThat()
-                .statusCode(201);
+        checkResponseCode(response, 201);
         Assert.assertTrue("Курьер не создан", response
                 .body()
                 .as(CourierResponse.class).getOk());
@@ -89,8 +110,11 @@ public class CourierTests {
     }
 
     @Test
+    @Epic(value = "/api/v1/Courier")
     @DisplayName("Нельзя создать двух одинаковых курьеров")
     public void createTwoCouriersFail() {
+        isSuccess = true;
+
         Courier courier = new Courier(login, password, name);
 
         //вызываем первый раз
@@ -99,19 +123,17 @@ public class CourierTests {
         //вызываем второй раз
         Response responseRepeat = postCourier(courier);
 
-        CourierResponseFail courierResponse = responseRepeat
-                .body()
-                .as(CourierResponseFail.class);
-
-        responseRepeat.then().assertThat()
-                .statusCode(409);
-        Assert.assertEquals("Этот логин уже используется. Попробуйте другой.", courierResponse.getMessage());
+        checkResponseCode(responseRepeat, 409);
+        checkResponseMessage(responseRepeat, "Этот логин уже используется. Попробуйте другой.");
 
     }
 
     @Test
+    @Epic(value = "/api/v1/Courier")
     @DisplayName("Нельзя создать двух курьеров с одинаковым логином")
     public void createTwoLoginsFail() {
+        isSuccess = true;
+
         Courier courierOne = new Courier(login, password, name);
         Courier courierTwo = new Courier(login, "1234567", "Ivan");
 
@@ -121,17 +143,13 @@ public class CourierTests {
         //вызываем второй раз
         Response responseRepeat = postCourier(courierTwo);
 
-        CourierResponseFail courierResponse = responseRepeat
-                .body()
-                .as(CourierResponseFail.class);
-
-        responseRepeat.then().assertThat()
-                .statusCode(409);
-        Assert.assertEquals("Этот логин уже используется. Попробуйте другой.", courierResponse.getMessage());
+        checkResponseCode(responseRepeat, 409);
+        checkResponseMessage(responseRepeat, "Этот логин уже используется. Попробуйте другой.");
 
     }
 
     @Test
+    @Epic(value = "/api/v1/Courier")
     @DisplayName("Нет поля Логин")
     public void createNoLoginFail() {
 
@@ -144,15 +162,13 @@ public class CourierTests {
                         .body(json)
                         .post("/api/v1/Courier");
 
-        response.then().assertThat()
-                .statusCode(400);
-        Assert.assertEquals("Недостаточно данных для создания учетной записи", response
-                .body()
-                .as(CourierResponseFail.class).getMessage());
+        checkResponseCode(response, 400);
+        checkResponseMessage(response, "Недостаточно данных для создания учетной записи");
 
     }
 
     @Test
+    @Epic(value = "/api/v1/Courier")
     @DisplayName("Нет поля Пароль")
     public void createNoPasswordFail() {
 
@@ -165,11 +181,8 @@ public class CourierTests {
                 .body(json)
                 .post("/api/v1/Courier");
 
-        response.then().assertThat()
-                .statusCode(400);
-        Assert.assertEquals("Недостаточно данных для создания учетной записи", response
-                .body()
-                .as(CourierResponseFail.class).getMessage());
+        checkResponseCode(response, 400);
+        checkResponseMessage(response, "Недостаточно данных для создания учетной записи");
 
     }
 

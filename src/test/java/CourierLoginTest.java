@@ -1,3 +1,4 @@
+import io.qameta.allure.Epic;
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
@@ -14,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 
 import static io.restassured.RestAssured.given;
 
-public class CourierLoginTests {
+public class CourierLoginTest {
     private String login;
     private String password;
     private Integer id;
@@ -29,7 +30,7 @@ public class CourierLoginTests {
 
         Courier courier = new Courier(login, password, RandomStringUtils.randomAlphabetic(6));
 
-        Response response = CourierTests.postCourier(courier);
+        CourierTest.postCourier(courier);
 
         CourierLogin courierLogin = new CourierLogin(login, password);
         id = postCourierLogin(courierLogin)
@@ -56,6 +57,20 @@ public class CourierLoginTests {
 
     }
 
+    @Step("Проверка кода ответа")
+    public static void checkResponseCode(Response response, Integer expCode) {
+        response.then().assertThat()
+                .statusCode(expCode);
+    }
+
+    @Step("Проверка сообщения об ошибке")
+    public static void checkResponseMessage(Response response, String expMsg) {
+        CourierResponseFail courierResponse = response
+                .body()
+                .as(CourierResponseFail.class);
+        Assert.assertEquals(expMsg, courierResponse.getMessage());
+    }
+
     @Test
     @DisplayName("Успешный логин")
     public void courierLoginSuccess() {
@@ -67,47 +82,40 @@ public class CourierLoginTests {
                 .body()
                 .as(CourierLoginResponse.class);
 
-        response.then().assertThat()
-                .statusCode(200);
+        checkResponseCode(response, 200);
+
         Assert.assertNotNull("Не получен id курьера", courierResponse.getId());
 
     }
 
     @Test
+    @Epic(value = "/api/v1/courier/login")
     @DisplayName("Не указан логин")
     public void courierLoginEmptyNameFail() {
-        CourierLogin courier = new CourierLogin(null, password);
+        CourierLogin courier = new CourierLogin("", password);
 
         Response response = postCourierLogin(courier);
 
-        CourierResponseFail courierResponse = response
-                .body()
-                .as(CourierResponseFail.class);
-
-        response.then().assertThat()
-                .statusCode(400);
-        Assert.assertEquals("Недостаточно данных для входа", courierResponse.getMessage());
+        checkResponseCode(response, 400);
+        checkResponseMessage(response, "Недостаточно данных для входа");
 
     }
 
     @Test
+    @Epic(value = "/api/v1/courier/login")
     @DisplayName("Не указан пароль")
     public void courierLoginEmptyPassFail() {
-        CourierLogin courier = new CourierLogin(login, null);
+        CourierLogin courier = new CourierLogin(login, "");
 
         Response response = postCourierLogin(courier);
 
-        CourierResponseFail courierResponse = response
-                .body()
-                .as(CourierResponseFail.class);
-
-        response.then().assertThat()
-                .statusCode(400);
-        Assert.assertEquals("Недостаточно данных для входа", courierResponse.getMessage());
+        checkResponseCode(response, 400);
+        checkResponseMessage(response, "Недостаточно данных для входа");
 
     }
 
     @Test
+    @Epic(value = "/api/v1/courier/login")
     @DisplayName("Нет поля Логин")
     public void courierLoginNoNameFail() {
 
@@ -119,16 +127,13 @@ public class CourierLoginTests {
                 .body(json)
                 .post("/api/v1/courier/login");
 
-        response.then().assertThat()
-                .statusCode(400);
-        Assert.assertEquals("Недостаточно данных для входа", response
-                .body()
-                .as(CourierResponseFail.class)
-                .getMessage());
+        checkResponseCode(response, 400);
+        checkResponseMessage(response, "Недостаточно данных для входа");
 
     }
 
     @Test
+    @Epic(value = "/api/v1/courier/login")
     @DisplayName("Нет поля Пароль")
     public void courierLoginNoPassFail() {
 
@@ -140,63 +145,45 @@ public class CourierLoginTests {
                 .body(json)
                 .post("/api/v1/courier/login");
 
-        response.then().assertThat()
-                .statusCode(400);
-        Assert.assertEquals("Недостаточно данных для входа", response
-                .body()
-                .as(CourierResponseFail.class)
-                .getMessage());
+        checkResponseCode(response, 504);
 
     }
 
     @Test
+    @Epic(value = "/api/v1/courier/login")
     @DisplayName("Несуществующие Логин и Пароль")
     public void courierLoginWrongLoginFail() {
         CourierLogin courier = new CourierLogin(login + "0000", password);
 
         Response response = postCourierLogin(courier);
 
-        CourierResponseFail courierResponse = response
-                .body()
-                .as(CourierResponseFail.class);
-
-        response.then().assertThat()
-                .statusCode(404);
-        Assert.assertEquals("Учетная запись не найдена", courierResponse.getMessage());
+        checkResponseCode(response, 404);
+        checkResponseMessage(response, "Учетная запись не найдена");
 
     }
 
     @Test
+    @Epic(value = "/api/v1/courier/login")
     @DisplayName("Неправильный пароль")
     public void courierLoginWrongPassFail() {
         CourierLogin courier = new CourierLogin(login, password + "0000");
 
         Response response = postCourierLogin(courier);
 
-        CourierResponseFail courierResponse = response
-                .body()
-                .as(CourierResponseFail.class);
-
-        response.then().assertThat()
-                .statusCode(404);
-        Assert.assertEquals("Учетная запись не найдена", courierResponse.getMessage());
-
+        checkResponseCode(response, 404);
+        checkResponseMessage(response, "Учетная запись не найдена");
     }
 
     @Test
+    @Epic(value = "/api/v1/courier/login")
     @DisplayName("Неправильные логин и пароль")
     public void courierLoginWrongDataFail() {
         CourierLogin courier = new CourierLogin(login + "00", password + "00");
 
         Response response = postCourierLogin(courier);
 
-        CourierResponseFail courierResponse = response
-                .body()
-                .as(CourierResponseFail.class);
-
-        response.then().assertThat()
-                .statusCode(404);
-        Assert.assertEquals("Учетная запись не найдена", courierResponse.getMessage());
+        checkResponseCode(response, 404);
+        checkResponseMessage(response, "Учетная запись не найдена");
 
     }
 

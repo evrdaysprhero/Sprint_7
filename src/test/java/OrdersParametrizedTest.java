@@ -1,3 +1,5 @@
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -14,7 +16,7 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 
 @RunWith(Parameterized.class)
-public class OrdersParametrizedTests {
+public class OrdersParametrizedTest {
 
     private final String firstName;
     private final String lastName;
@@ -27,9 +29,9 @@ public class OrdersParametrizedTests {
     private final String firstColour;
     private final String secondColour;
 
-    public OrdersParametrizedTests(String firstName, String lastName, String address,
-                                   int metroStation, String phone, int rentTime,
-                                   String deliveryDate, String comment, String firstColour, String secondColour) {
+    public OrdersParametrizedTest(String firstName, String lastName, String address,
+                                  int metroStation, String phone, int rentTime,
+                                  String deliveryDate, String comment, String firstColour, String secondColour) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.address = address;
@@ -59,6 +61,8 @@ public class OrdersParametrizedTests {
     }
 
     @Test
+    @Epic(value = "/api/v1/orders")
+    @Feature(value = "Успешное создание заказа")
     @DisplayName("Успешное создание заказа")
     public void createOrderSuccess() {
 
